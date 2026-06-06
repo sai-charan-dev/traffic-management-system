@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrafficOS Bengaluru — BTP Control Center</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg:#080b10; --surface:#0f1520; --surface2:#161d2b;
+    --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.12);
+    --text:#dde2f0; --muted:#5c6680;
+    --accent:#00d4ff; --green:#00e676; --amber:#ffb300; --red:#ff3d3d; --purple:#b388ff;
+    --mono:'DM Mono',monospace; --sans:'Space Grotesk',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+  /* ── LOGIN ── */
+  #login-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse 70% 60% at 50% 20%,rgba(0,212,255,0.07) 0%,transparent 70%);
+    position:relative;overflow:hidden;
+  }
+  .grid-bg{
+    position:absolute;inset:0;
+    background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);
+    background-size:44px 44px;animation:gs 25s linear infinite;
+  }
+  @keyframes gs{0%{background-position:0 0}100%{background-position:44px 44px}}
+  .login-card{
+    position:relative;z-index:10;width:430px;padding:48px 40px;
+    background:rgba(15,21,32,0.97);border:1px solid rgba(0,212,255,0.18);
+    border-radius:16px;backdrop-filter:blur(20px);
+    box-shadow:0 0 80px rgba(0,212,255,0.05),0 40px 80px rgba(0,0,0,0.7);
+    animation:fadeUp .5s ease-out;
+  }
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .login-logo{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+  .logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#00d4ff,#0088bb);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .logo-text{font-size:24px;font-weight:700;letter-spacing:-0.5px;}
+  .logo-text span{color:var(--accent);}
+  .logo-dept{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase;}
+  .login-tagline{font-size:12px;color:var(--muted);margin-bottom:32px;padding:10px 14px;background:rgba(0,212,255,0.04);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;}
+  .form-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:7px;display:block;}
+  .form-input{width:100%;padding:12px 16px;background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:16px;}
+  .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1);}
+  .form-input::placeholder{color:var(--muted);}
+  .login-btn{width:100%;padding:14px;background:var(--accent);color:#000;font-weight:700;font-size:15px;font-family:var(--sans);border:none;border-radius:8px;cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:0.2px;margin-top:4px;}
+  .login-btn:hover{opacity:.88;}
+  .login-btn:active{transform:scale(.99);}
+  .login-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:18px;}
+  .login-hint code{background:rgba(255,255,255,0.07);padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:11px;}
+  .login-error{background:rgba(255,61,61,0.1);border:1px solid rgba(255,61,61,0.3);color:#ff6b6b;font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none;}
+  .login-junctions{margin-top:20px;padding:12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;}
+  .lj-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;}
+  .lj-dots{display:flex;gap:8px;flex-wrap:wrap;}
+  .lj-dot{font-size:11px;padding:3px 9px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:20px;color:rgba(0,212,255,0.7);}
+
+  /* ── SIDEBAR ── */
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:245px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+  .sb-logo{padding:22px 18px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+  .sb-icon{width:34px;height:34px;background:linear-gradient(135deg,#00d4ff,#0088bb);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .sb-text{font-size:15px;font-weight:700;}  .sb-text span{color:var(--accent);}
+  .sb-dept{font-size:9px;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
+  .nav-wrap{padding:18px 10px 8px;flex:1;overflow-y:auto;}
+  .nav-section-label{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:0 10px;margin-bottom:6px;margin-top:14px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--muted);transition:all .15s;margin-bottom:1px;user-select:none;}
+  .nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+  .nav-item.active{background:rgba(0,212,255,0.1);color:var(--accent);}
+  .nav-item .ni{font-size:17px;width:20px;text-align:center;}
+  .sb-junctions{padding:14px 16px;border-top:1px solid var(--border);}
+  .sb-j-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;}
+  .junction-chip{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11.5px;}
+  .junction-chip:last-child{border-bottom:none;}
+  .j-status{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .j-name{flex:1;color:var(--muted);}
+  .j-density{font-family:var(--mono);font-size:10px;}
+
+  /* ── MAIN ── */
+  #dashboard{display:none;min-height:100vh;}
+  .main{margin-left:245px;padding:26px 30px;min-height:100vh;}
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;}
+  .page-title{font-size:21px;font-weight:700;}
+  .page-sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+  .topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .time-badge{font-family:var(--mono);font-size:12px;color:var(--accent);background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.18);padding:6px 12px;border-radius:7px;}
+  .user-badge{display:flex;align-items:center;gap:7px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-size:12.5px;}
+  .u-dot{width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green);}
+  .logout-btn{padding:6px 13px;background:rgba(255,61,61,0.09);border:1px solid rgba(255,61,61,0.22);color:#ff6b6b;font-size:12px;font-family:var(--sans);border-radius:7px;cursor:pointer;transition:all .15s;font-weight:500;}
+  .logout-btn:hover{background:rgba(255,61,61,0.17);}
+
+  /* ── LAYOUT ── */
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  .two-col{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;margin-bottom:18px;}
+  .three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .card-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;}
+  .badge{font-size:10.5px;padding:3px 9px;border-radius:20px;font-weight:600;}
+  .badge-live{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.22);}
+  .badge-auto{background:rgba(0,212,255,0.09);color:var(--accent);border:1px solid rgba(0,212,255,0.18);}
+  .badge-warn{background:rgba(255,179,0,0.1);color:var(--amber);border:1px solid rgba(255,179,0,0.22);}
+
+  /* stat cards */
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+  .stat-label{font-size:12px;color:var(--muted);margin-bottom:7px;font-weight:500;}
+  .stat-value{font-size:30px;font-weight:700;font-family:var(--mono);line-height:1;}
+  .stat-delta{font-size:11.5px;margin-top:7px;}
+  .delta-up{color:var(--green);}
+  .delta-dn{color:var(--red);}
+
+  /* camera */
+  .camera-feed{aspect-ratio:16/9;background:#050810;border-radius:8px;position:relative;overflow:hidden;border:1px solid var(--border2);}
+  .cam-scanline{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,212,255,0.012) 3px,rgba(0,212,255,0.012) 4px);pointer-events:none;}
+  .cam-lanes{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);}
+  .cam-lane-col{border-right:1px dashed rgba(0,212,255,0.08);position:relative;}
+  .cam-lane-col:last-child{border-right:none;}
+  .cam-lane-label{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(0,212,255,0.5);font-family:var(--mono);white-space:nowrap;}
+  .cam-hud-tl{position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:9.5px;color:rgba(0,212,255,0.65);line-height:1.6;}
+  .cam-hud-tr{position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;}
+  .rec-dot{width:6px;height:6px;background:var(--red);border-radius:50%;animation:blink 1s step-end infinite;flex-shrink:0;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+  .cam-hud-br{position:absolute;bottom:10px;right:10px;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.3);}
+  .bbox{position:absolute;border:1.5px solid;border-radius:2px;font-size:8.5px;font-family:var(--mono);padding:1px 3px;pointer-events:none;}
+  .bbox-car{border-color:rgba(0,212,255,0.8);color:rgba(0,212,255,0.9);}
+  .bbox-bus{border-color:rgba(179,136,255,0.85);color:rgba(179,136,255,0.95);}
+  .bbox-bike{border-color:rgba(255,179,0,0.8);color:rgba(255,179,0,0.9);}
+  .bbox-truck{border-color:rgba(255,80,80,0.8);color:rgba(255,100,100,0.9);}
+  .bbox-auto{border-color:rgba(0,230,118,0.8);color:rgba(0,230,118,0.9);}
+
+  /* junction selector */
+  .junction-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .jtab{padding:6px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;color:var(--muted);transition:all .15s;user-select:none;}
+  .jtab:hover{color:var(--text);border-color:var(--border2);}
+  .jtab.active{background:rgba(0,212,255,0.1);border-color:rgba(0,212,255,0.3);color:var(--accent);}
+  .jtab .jtab-density{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;}
+
+  /* signal lights */
+  .signal-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+  .signal-lights{display:flex;flex-direction:column;gap:3px;align-items:center;}
+  .sig-light{width:11px;height:11px;border-radius:50%;transition:all .4s;}
+  .signal-info{flex:1;}
+  .signal-name{font-size:13px;font-weight:600;margin-bottom:3px;}
+  .signal-detail{font-size:11px;color:var(--muted);}
+  .sig-timer{font-family:var(--mono);font-size:20px;font-weight:500;min-width:40px;text-align:right;}
+
+  /* lane meters */
+  .lane-row-flex{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;font-size:12.5px;}
+  .lane-bar{height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-bottom:12px;}
+  .lane-fill{height:100%;border-radius:3px;transition:width 1.2s ease;}
+  .fill-low{background:var(--green);}
+  .fill-med{background:var(--amber);}
+  .fill-high{background:var(--red);}
+  .density-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;}
+  .db-low{background:rgba(0,230,118,0.1);color:var(--green);}
+  .db-med{background:rgba(255,179,0,0.1);color:var(--amber);}
+  .db-high{background:rgba(255,61,61,0.1);color:var(--red);}
+
+  /* tables */
+  .tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .tbl th{text-align:left;padding:8px 12px;font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+  .tbl td{padding:9px 12px;border-bottom:1px solid var(--border);}
+  .tbl tr:last-child td{border-bottom:none;}
+  .tbl tr:hover td{background:rgba(255,255,255,0.02);}
+
+  /* tabs */
+  .tabs{display:flex;gap:2px;margin-bottom:18px;border-bottom:1px solid var(--border);}
+  .tab{padding:8px 16px;font-size:13px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+  .tab:hover{color:var(--text);}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* pages */
+  .page-section{display:none;}
+  .page-section.visible{display:block;}
+  ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ LOGIN ═══════════ -->
+<div id="login-screen">
+  <div class="grid-bg"></div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🚦</div>
+      <div>
+        <div class="logo-text">Traffic<span>OS</span> Bengaluru</div>
+        <div class="logo-dept">Bengaluru Traffic Police · BTP Control Center</div>
+      </div>
+    </div>
+    <div class="login-tagline">Integrated Intelligent Traffic Management System — Bengaluru City</div>
+
+    <div class="login-error" id="login-error">Invalid credentials. Access denied.</div>
+    <label class="form-label">Officer ID / Username</label>
+    <input class="form-input" type="text" id="u-input" placeholder="e.g. BTP_ADMIN" value="BTP_ADMIN">
+    <label class="form-label">Password</label>
+    <input class="form-input" type="password" id="p-input" placeholder="Enter secure password">
+    <button class="login-btn" onclick="doLogin()">🔐 Sign In to Control Center</button>
+    <p class="login-hint">Demo: <code>BTP_ADMIN</code> / <code>bengaluru2024</code></p>
+
+    <div class="login-junctions">
+      <div class="lj-label">Monitoring Locations</div>
+      <div class="lj-dots">
+        <div class="lj-dot">Hebbal Flyover</div>
+        <div class="lj-dot">Silk Board Jn.</div>
+        <div class="lj-dot">Majestic</div>
+        <div class="lj-dot">KR Puram Bridge</div>
+        <div class="lj-dot">Marathahalli</div>
+        <div class="lj-dot">Tin Factory</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<div id="dashboard">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-icon">🚦</div>
+      <div><div class="sb-text">Traffic<span>OS</span></div><div class="sb-dept">BTP Control Center</div></div>
+    </div>
+    <div class="nav-wrap">
+      <div class="nav-section-label">Monitor</div>
+      <div class="nav-item active" onclick="showPage('live',this)"><span class="ni">📡</span> Live Monitor</div>
+      <div class="nav-item" onclick="showPage('signals',this)"><span class="ni">🚦</span> Signal Control</div>
+      <div class="nav-item" onclick="showPage('density',this)"><span class="ni">📊</span> Density Analysis</div>
+      <div class="nav-section-label">Analytics</div>
+      <div class="nav-item" onclick="showPage('reports',this)"><span class="ni">📈</span> Daily Reports</div>
+      <div class="nav-item" onclick="showPage('peak',this)"><span class="ni">🕐</span> Peak Hours</div>
+      <div class="nav-section-label">System</div>
+      <div class="nav-item" onclick="showPage('cameras',this)"><span class="ni">📷</span> Camera Network</div>
+      <div class="nav-item" onclick="showPage('settings',this)"><span class="ni">⚙️</span> Settings</div>
+    </div>
+    <div class="sb-junctions">
+      <div class="sb-j-label">Live Junction Status</div>
+      <div id="sidebar-junctions"></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="page-title">Live Traffic Monitor</div>
+        <div class="page-sub" id="page-sub">Real-time detection across 6 Bengaluru junctions · Powered by BTP Camera Network</div>
+      </div>
+      <div class="topbar-right">
+        <div class="time-badge" id="clock"></div>
+        <div class="user-badge"><div class="u-dot"></div><span id="logged-user">BTP_ADMIN</span></div>
+        <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- ── LIVE MONITOR ── -->
+    <div class="page-section visible" id="page-live">
+
+      <!-- Junction selector -->
+      <div class="junction-tabs" id="jtabs"></div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">🚗 Cars Detected</div>
+          <div class="stat-value" id="cnt-cars" style="color:var(--accent)">—</div>
+          <div class="stat-delta" id="delta-cars">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🏍 Bikes / Autos</div>
+          <div class="stat-value" id="cnt-bikes" style="color:var(--amber)">—</div>
+          <div class="stat-delta" id="delta-bikes">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🚌 Buses (BMTC)</div>
+          <div class="stat-value" id="cnt-buses" style="color:var(--purple)">—</div>
+          <div class="stat-delta" id="delta-buses">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🚛 Trucks / HTV</div>
+          <div class="stat-value" id="cnt-trucks" style="color:var(--red)">—</div>
+          <div class="stat-delta" id="delta-trucks">—</div>
+        </div>
+      </div>
+
+      <!-- Camera + Signal -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title" id="cam-junction-label">Camera Feed</span>
+            <span class="badge badge-live"><span class="rec-dot" style="display:inline-block;margin-right:4px"></span>LIVE</span>
+          </div>
+          <div class="camera-feed" id="cam-feed">
+            <div class="cam-scanline"></div>
+            <div class="cam-lanes" id="cam-lanes-grid"></div>
+            <div class="cam-hud-tl" id="cam-hud-tl">CAM_01 · Hebbal Flyover<br><span id="cam-fps">FPS: 30 · OpenCV+YOLOv8</span></div>
+            <div class="cam-hud-tr"><div class="rec-dot"></div><span style="color:rgba(255,61,61,0.85);font-family:var(--mono);font-size:9px">REC</span></div>
+            <div class="cam-hud-br" id="cam-hud-br">1920×1080 · H.264</div>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;align-items:center;">
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--accent)"></span>Car</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--amber)"></span>Bike/Auto</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--purple)"></span>BMTC Bus</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--red)"></span>Truck/HTV</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--muted)">Source: BTP CCTV Network</span>
+          </div>
+        </div>
+
+        <!-- Signal -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Signal Status</span>
+            <span class="badge badge-auto">SMART AUTO</span>
+          </div>
+          <div id="signal-panel"></div>
+          <div style="margin-top:12px;padding:11px 13px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.1);border-radius:8px;">
+            <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Smart Timing (BTP Rules)</div>
+            <div style="font-size:11.5px;color:var(--muted);line-height:2;">
+              0–10 vehicles → <span style="color:var(--green);font-weight:600">15s</span> green<br>
+              11–25 vehicles → <span style="color:var(--amber);font-weight:600">30s</span> green<br>
+              25+ vehicles → <span style="color:var(--red);font-weight:600">45s</span> green
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lane density -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Lane Density — <span id="density-junction-label">Hebbal Flyover</span></span>
+          <span class="badge badge-live">Auto-updating</span>
+        </div>
+        <div id="lane-density-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;"></div>
+      </div>
+    </div>
+
+    <!-- ── SIGNAL CONTROL ── -->
+    <div class="page-section" id="page-signals">
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-header"><span class="card-title">Junction Signal Control</span><span class="badge badge-auto">Smart Mode</span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;" id="signal-control-grid"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Signal Activity Log — Today</span></div>
+        <table class="tbl"><thead><tr><th>Time</th><th>Junction</th><th>Phase</th><th>Duration</th><th>Vehicles</th><th>Triggered By</th></tr></thead>
+        <tbody id="sig-log-body"></tbody></table>
+      </div>
+    </div>
+
+    <!-- ── DENSITY ── -->
+    <div class="page-section" id="page-density">
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">City-wide Vehicles</div><div class="stat-value" id="d-total" style="color:var(--accent)">—</div></div>
+        <div class="stat-card"><div class="stat-label">Red Junctions</div><div class="stat-value" id="d-red" style="color:var(--red)">—</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Signal Green</div><div class="stat-value" id="d-green" style="color:var(--green)">—</div></div>
+        <div class="stat-card"><div class="stat-label">Congestion Index</div><div class="stat-value" id="d-idx" style="color:var(--amber)">—</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Vehicle Type Distribution — All Junctions</span></div>
+          <div style="position:relative;height:280px"><canvas id="distChart" role="img" aria-label="Vehicle type doughnut chart">Vehicle type distribution</canvas></div>
+          <div style="display:flex;gap:14px;margin-top:12px;flex-wrap:wrap;">
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:2px;background:#00d4ff;display:inline-block"></span>Cars 48%</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:2px;background:#ffb300;display:inline-block"></span>Bikes/Autos 28%</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:2px;background:#b388ff;display:inline-block"></span>BMTC 14%</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:2px;background:#ff3d3d;display:inline-block"></span>Trucks 10%</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Traffic Load by Junction</span></div>
+          <div style="position:relative;height:280px"><canvas id="junctionChart" role="img" aria-label="Traffic per junction">Junction load chart</canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DAILY REPORTS ── -->
+    <div class="page-section" id="page-reports">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tab-daily')">Daily Count</div>
+        <div class="tab" onclick="switchTab(this,'tab-hourly')">Hourly Trend</div>
+        <div class="tab" onclick="switchTab(this,'tab-weekly')">Weekly</div>
+      </div>
+      <div id="tab-daily">
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-header"><span class="card-title">Today's Vehicle Count — All Bengaluru Junctions</span></div>
+          <div style="position:relative;height:280px"><canvas id="dailyChart" role="img" aria-label="Daily count stacked bar">Daily vehicle counts</canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Hourly Breakdown Log</span></div>
+          <table class="tbl">
+            <thead><tr><th>Hour</th><th>Cars</th><th>Bikes/Autos</th><th>BMTC Buses</th><th>Trucks</th><th>Total</th><th>Level</th></tr></thead>
+            <tbody id="daily-log"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="tab-hourly" style="display:none">
+        <div class="card"><div class="card-header"><span class="card-title">Hourly Traffic Trend (Last 24h) — Bengaluru Average</span></div>
+        <div style="position:relative;height:320px"><canvas id="hourlyChart" role="img" aria-label="24hr trend line">24hr trend</canvas></div></div>
+      </div>
+      <div id="tab-weekly" style="display:none">
+        <div class="card"><div class="card-header"><span class="card-title">Weekly Summary — All Junctions</span></div>
+        <div style="position:relative;height:300px"><canvas id="weeklyChart" role="img" aria-label="Weekly bar">Weekly totals</canvas></div></div>
+      </div>
+    </div>
+
+    <!-- ── PEAK HOURS ── -->
+    <div class="page-section" id="page-peak">
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-header"><span class="card-title">Peak Hour Heatmap — Bengaluru Junctions (Mon–Sun × 24h)</span></div>
+        <div id="heatmap-wrap"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11px;color:var(--muted);">
+          Off-peak
+          <span style="width:14px;height:14px;border-radius:3px;background:rgba(0,230,118,0.15);display:inline-block"></span>
+          <span style="width:14px;height:14px;border-radius:3px;background:rgba(0,230,118,0.45);display:inline-block"></span>
+          <span style="width:14px;height:14px;border-radius:3px;background:rgba(255,179,0,0.55);display:inline-block"></span>
+          <span style="width:14px;height:14px;border-radius:3px;background:rgba(255,61,61,0.55);display:inline-block"></span>
+          <span style="width:14px;height:14px;border-radius:3px;background:rgba(255,61,61,0.9);display:inline-block"></span>
+          Peak
+        </div>
+      </div>
+      <div class="three-col">
+        <div class="stat-card">
+          <div class="stat-label">🌅 AM Peak — Bengaluru</div>
+          <div class="stat-value" style="color:var(--amber);font-size:22px;">8:45–9:30 AM</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Hebbal, Silk Board worst. ~312 vehicles/hr/junction.<br>Source: BTP officer data</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🌆 PM Peak — Bengaluru</div>
+          <div class="stat-value" style="color:var(--red);font-size:22px;">5:30–8:30 PM</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:6px">ORR jams 6–9 PM. ~428 vehicles/hr at Silk Board.<br>Source: Deccan Herald / BTP</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">😴 Off-Peak (Quietest)</div>
+          <div class="stat-value" style="color:var(--green);font-size:22px;">2:00–5:00 AM</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Avg ~8–15 vehicles/hr across all junctions.</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:0">
+        <div class="card-header"><span class="card-title">Junction-wise Congestion Profile</span></div>
+        <table class="tbl">
+          <thead><tr><th>Junction</th><th>AM Peak</th><th>PM Peak</th><th>Avg Daily</th><th>Worst Day</th><th>Status</th></tr></thead>
+          <tbody id="peak-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── CAMERAS ── -->
+    <div class="page-section" id="page-cameras">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;" id="camera-grid"></div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div class="page-section" id="page-settings">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Detection Parameters</span></div>
+          <div style="display:flex;flex-direction:column;gap:18px;">
+            <div>
+              <div style="font-size:13px;margin-bottom:7px;font-weight:500">YOLOv8 Confidence Threshold</div>
+              <input type="range" min="40" max="95" value="70" style="width:100%" id="conf-sl" oninput="document.getElementById('conf-v').textContent=this.value">
+              <div style="font-size:11.5px;color:var(--muted);margin-top:4px">Current: <span id="conf-v">70</span>%</div>
+            </div>
+            <div>
+              <div style="font-size:13px;margin-bottom:7px;font-weight:500">Camera FPS</div>
+              <input type="range" min="15" max="60" value="30" style="width:100%" id="fps-sl" oninput="document.getElementById('fps-v').textContent=this.value">
+              <div style="font-size:11.5px;color:var(--muted);margin-top:4px">Current: <span id="fps-v">30</span> FPS</div>
+            </div>
+            <div>
+              <div style="font-size:13px;margin-bottom:7px;font-weight:500">Detection Model</div>
+              <select style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-family:var(--sans)">
+                <option>YOLOv8n — Fast (Recommended for live)</option>
+                <option selected>YOLOv8s — Balanced</option>
+                <option>YOLOv8m — High Accuracy</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Smart Signal Timing</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div style="font-size:11px;color:var(--green);font-weight:700;margin-bottom:6px;">LOW (0–10 vehicles)</div>
+              <input type="number" value="15" style="width:70px;padding:6px;background:var(--bg);border:1px solid var(--border2);color:var(--text);border-radius:6px;font-family:var(--mono);font-size:14px;text-align:center">
+              <span style="font-size:12px;color:var(--muted);margin-left:8px;">seconds green</span>
+            </div>
+            <div style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div style="font-size:11px;color:var(--amber);font-weight:700;margin-bottom:6px;">MEDIUM (11–25 vehicles)</div>
+              <input type="number" value="30" style="width:70px;padding:6px;background:var(--bg);border:1px solid var(--border2);color:var(--text);border-radius:6px;font-family:var(--mono);font-size:14px;text-align:center">
+              <span style="font-size:12px;color:var(--muted);margin-left:8px;">seconds green</span>
+            </div>
+            <div style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <div style="font-size:11px;color:var(--red);font-weight:700;margin-bottom:6px;">HIGH (25+ vehicles)</div>
+              <input type="number" value="45" style="width:70px;padding:6px;background:var(--bg);border:1px solid var(--border2);color:var(--text);border-radius:6px;font-family:var(--mono);font-size:14px;text-align:center">
+              <span style="font-size:12px;color:var(--muted);margin-left:8px;">seconds green</span>
+            </div>
+            <button onclick="alert('Configuration saved!')" style="padding:10px;background:var(--accent);color:#000;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--sans);">Save Configuration</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   BENGALURU JUNCTION DATA
+   Based on: BTP reports, Deccan Herald coverage,
+   Mapunity Transport Dept data, Quora commuter reports
+══════════════════════════════════════ */
+const JUNCTIONS = [
+  {
+    id:'hebbal', name:'Hebbal Flyover', area:'North Bengaluru',
+    cam:'CAM_01 · Bellary Rd / ORR Merge', lanes:['Airport Rd','ORR Loop','KR Puram Rd','Service Lane'],
+    // Real: worst AM peak 8:45-11am, Deccan Herald BTP officer quote
+    amPeak:'8:45–11:00 AM', pmPeak:'5:00–9:00 PM',
+    avgDaily:2840, worstDay:'Monday', status:'high',
+    // Hourly multipliers based on real pattern: DH article — peaks double/triple
+    pattern:[0.1,0.08,0.06,0.05,0.09,0.2,0.5,0.85,1.0,0.72,0.55,0.52,0.65,0.58,0.5,0.55,0.68,0.9,0.95,0.75,0.58,0.42,0.25,0.14],
+    baseLoad:{cars:95,bikes:62,buses:28,trucks:14},
+    congestionNote:'Airport Rd, ORR, Tumakuru Rd & KR Puram all merge here — worst in North BLR'
+  },
+  {
+    id:'silkboard', name:'Silk Board Junction', area:'South Bengaluru',
+    cam:'CAM_02 · Hosur Rd / Outer Ring Road',lanes:['Hosur Rd North','Hosur Rd South','ORR East','ORR West'],
+    amPeak:'8:00–10:00 AM', pmPeak:'6:00–9:00 PM',
+    avgDaily:3120, worstDay:'Friday',status:'high',
+    // Silk Board consistently Bengaluru's worst — 428 vehicles/hr PM per commuter data
+    pattern:[0.08,0.06,0.05,0.04,0.07,0.18,0.48,0.9,1.0,0.75,0.58,0.55,0.68,0.62,0.55,0.6,0.75,1.0,1.0,0.82,0.62,0.45,0.28,0.12],
+    baseLoad:{cars:112,bikes:75,buses:35,trucks:18},
+    congestionNote:'Ranked most congested junction in Bengaluru by multiple surveys'
+  },
+  {
+    id:'majestic', name:'Majestic / KBS', area:'Central Bengaluru',
+    cam:'CAM_03 · Dr. Rajkumar Rd / Gubbi Thotadappa Rd',lanes:['Bus Stand Approach','City Mkt Rd','Gubbi Rd'],
+    amPeak:'6:00–9:00 AM', pmPeak:'5:00–8:00 PM',
+    avgDaily:2240, worstDay:'Monday',status:'medium',
+    // Deccan Herald: outstation buses arrive 6am, avg speed 12.64 kmph
+    pattern:[0.15,0.1,0.08,0.06,0.1,0.25,0.7,0.88,0.82,0.65,0.55,0.6,0.72,0.65,0.58,0.65,0.78,0.88,0.85,0.7,0.55,0.42,0.3,0.2],
+    baseLoad:{cars:72,bikes:55,buses:48,trucks:8},
+    congestionNote:'KSRTC/BMTC hub — outstation buses peak 6 AM, avg speed ~12.6 km/h'
+  },
+  {
+    id:'krpuram', name:'KR Puram Bridge', area:'East Bengaluru',
+    cam:'CAM_04 · NH 44 / Old Madras Rd',lanes:['NH44 West','NH44 East','Old Madras Rd'],
+    amPeak:'7:30–9:30 AM', pmPeak:'5:30–8:00 PM',
+    avgDaily:2580, worstDay:'Monday',status:'high',
+    // ORR virtually standstill at KR Puram bridge — BCG / Deccan Herald
+    pattern:[0.09,0.07,0.05,0.04,0.08,0.18,0.45,0.88,1.0,0.72,0.54,0.5,0.62,0.55,0.5,0.56,0.72,0.92,0.95,0.78,0.58,0.4,0.24,0.12],
+    baseLoad:{cars:88,bikes:60,buses:22,trucks:20},
+    congestionNote:'Bridge bottleneck — ORR standstill. Kasturi Nagar jam extends to Tin Factory'
+  },
+  {
+    id:'marathahalli', name:'Marathahalli Bridge', area:'East ORR',
+    cam:'CAM_05 · Outer Ring Road',lanes:['ORR North','ORR South','Whitefield Rd','Sarjapur Rd'],
+    amPeak:'8:00–10:00 AM', pmPeak:'6:00–9:00 PM',
+    avgDaily:2960, worstDay:'Tuesday',status:'high',
+    pattern:[0.08,0.06,0.05,0.04,0.07,0.16,0.44,0.85,0.98,0.75,0.57,0.54,0.67,0.6,0.54,0.6,0.74,0.95,1.0,0.80,0.60,0.42,0.25,0.11],
+    baseLoad:{cars:98,bikes:65,buses:24,trucks:16},
+    congestionNote:'IT corridor junction — Whitefield & Sarjapur traffic merges here daily'
+  },
+  {
+    id:'tinfactory', name:'Tin Factory / ITPL', area:'Whitefield',
+    cam:'CAM_06 · Outer Ring Road / ITPL Main Rd',lanes:['ITPL Rd','ORR West','KR Puram Dir.'],
+    amPeak:'7:30–9:30 AM', pmPeak:'5:00–8:30 PM',
+    avgDaily:2180, worstDay:'Wednesday',status:'medium',
+    pattern:[0.07,0.05,0.04,0.03,0.06,0.15,0.4,0.82,0.95,0.7,0.52,0.5,0.6,0.54,0.48,0.54,0.68,0.88,0.92,0.74,0.55,0.38,0.22,0.1],
+    baseLoad:{cars:75,bikes:52,buses:18,trucks:12},
+    congestionNote:'KR Puram→Tin Factory corridor consumes ~1hr commute during peaks'
+  }
+];
+
+let activeJunction = 0;
+const sigLog = [];
+const sigState = JUNCTIONS.map((j,i)=>({
+  color:['red','green','amber','red','green','amber'][i],
+  timer:[25,18,5,30,12,8][i], vehicles:0
+}));
+
+/* ── AUTH ── */
+function doLogin(){
+  const u=document.getElementById('u-input').value.trim();
+  const p=document.getElementById('p-input').value.trim();
+  if(u==='BTP_ADMIN'&&p==='bengaluru2024'){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+    document.getElementById('logged-user').textContent=u;
+    initDashboard();
+  } else {
+    const e=document.getElementById('login-error');
+    e.style.display='block'; setTimeout(()=>e.style.display='none',3000);
+  }
+}
+document.getElementById('p-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('u-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+function doLogout(){
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('p-input').value='';
+}
+
+/* ── CLOCK ── */
+function tick(){
+  const n=new Date();
+  document.getElementById('clock').textContent=
+    n.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+
+    n.toLocaleTimeString('en-IN',{hour12:false});
+}
+setInterval(tick,1000); tick();
+
+/* ── NAV ── */
+const PAGE_META={
+  live:{title:'Live Traffic Monitor',sub:'Real-time detection across 6 Bengaluru junctions · BTP CCTV Network'},
+  signals:{title:'Signal Control Center',sub:'Smart adaptive signals — 6 junctions, Bengaluru'},
+  density:{title:'Traffic Density Analysis',sub:'Vehicle classification & junction load — all Bengaluru hotspots'},
+  reports:{title:'Daily Reports & Statistics',sub:'Hourly breakdowns, trends, and export — Bengaluru junctions'},
+  peak:{title:'Peak Hour Analysis',sub:'Congestion heatmaps based on BTP & commuter data'},
+  cameras:{title:'Camera Network',sub:'BTP CCTV — 6 junctions monitored'},
+  settings:{title:'System Settings',sub:'Detection and signal configuration'},
+};
+function showPage(id,el){
+  document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('visible'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('visible');
+  el.classList.add('active');
+  const m=PAGE_META[id];
+  document.getElementById('page-title').textContent=m.title;
+  document.getElementById('page-sub').textContent=m.sub;
+  if(id==='density'&&!window._dInit){initDensityCharts();window._dInit=true;}
+  if(id==='reports'&&!window._rInit){initReports();window._rInit=true;}
+  if(id==='peak'&&!window._pInit){initPeak();window._pInit=true;}
+  if(id==='cameras'&&!window._cInit){initCameras();window._cInit=true;}
+}
+function switchTab(el,tid){
+  document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['tab-daily','tab-hourly','tab-weekly'].forEach(t=>document.getElementById(t).style.display=t===tid?'block':'none');
+  if(tid==='tab-hourly'&&!window._hInit){initHourlyChart();window._hInit=true;}
+  if(tid==='tab-weekly'&&!window._wInit){initWeeklyChart();window._wInit=true;}
+}
+
+/* ── HELPERS ── */
+function ri(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function getHourMultiplier(jIdx){
+  const h=new Date().getHours();
+  return JUNCTIONS[jIdx].pattern[h];
+}
+function getVehicles(jIdx){
+  const j=JUNCTIONS[jIdx]; const m=getHourMultiplier(jIdx);
+  const noise=0.85+Math.random()*0.3;
+  return {
+    cars: Math.round(j.baseLoad.cars*m*noise),
+    bikes: Math.round(j.baseLoad.bikes*m*noise*(0.9+Math.random()*0.2)),
+    buses: Math.round(j.baseLoad.buses*m*noise*(0.85+Math.random()*0.3)),
+    trucks: Math.round(j.baseLoad.trucks*m*noise*(0.8+Math.random()*0.4)),
+  };
+}
+function densityLevel(count,cap){
+  const p=count/cap;
+  return p<0.4?'low':p<0.75?'med':'high';
+}
+function sigGreenTime(v){return v<=10?15:v<=25?30:45;}
+function densityColor(lvl){ return lvl==='low'?'var(--green)':lvl==='med'?'var(--amber)':'var(--red)';}
+
+/* ── JUNCTION TABS ── */
+function buildJunctionTabs(){
+  const el=document.getElementById('jtabs');
+  el.innerHTML=JUNCTIONS.map((j,i)=>{
+    const lvl=j.status;
+    const dotCol=lvl==='high'?'var(--red)':lvl==='medium'?'var(--amber)':'var(--green)';
+    return `<div class="jtab${i===0?' active':''}" onclick="selectJunction(${i},this)">
+      <span class="jtab-density" style="background:${dotCol}"></span>${j.name}
+    </div>`;
+  }).join('');
+}
+function selectJunction(i,el){
+  activeJunction=i;
+  document.querySelectorAll('.jtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  updateLivePanel();
+}
+
+/* ── SIDEBAR JUNCTIONS ── */
+function updateSidebarJunctions(){
+  const el=document.getElementById('sidebar-junctions');
+  el.innerHTML=JUNCTIONS.map(j=>{
+    const m=getHourMultiplier(JUNCTIONS.indexOf(j));
+    const lvl=m>0.7?'high':m>0.4?'med':'low';
+    const col=densityColor(lvl);
+    const label=lvl==='high'?'HIGH':lvl==='med'?'MED':'LOW';
+    return `<div class="junction-chip">
+      <div class="j-status" style="background:${col};${lvl==='high'?'box-shadow:0 0 6px '+col:''}"></div>
+      <span class="j-name">${j.name}</span>
+      <span class="j-density" style="color:${col}">${label}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── CAMERA FEED ── */
+const BBOX_TYPES=[
+  {cls:'bbox-car',label:'CAR',w:[28,55],h:[18,32]},
+  {cls:'bbox-bus',label:'BMTC',w:[30,45],h:[28,48]},
+  {cls:'bbox-bike',label:'BIKE',w:[16,28],h:[14,24]},
+  {cls:'bbox-truck',label:'TRUCK',w:[36,60],h:[34,55]},
+  {cls:'bbox-auto',label:'AUTO',w:[20,30],h:[16,26]},
+];
+function updateBboxes(){
+  const feed=document.getElementById('cam-feed');
+  feed.querySelectorAll('.bbox').forEach(b=>b.remove());
+  const j=JUNCTIONS[activeJunction];
+  const m=getHourMultiplier(activeJunction);
+  const count=Math.round(4+m*9);
+  const fw=feed.offsetWidth||600, fh=feed.offsetHeight||340;
+  for(let i=0;i<count;i++){
+    const t=BBOX_TYPES[ri(0,BBOX_TYPES.length-1)];
+    const w=ri(...t.w), h=ri(...t.h);
+    const box=document.createElement('div');
+    box.className='bbox '+t.cls;
+    box.style.cssText=`left:${ri(4,fw-w-4)}px;top:${ri(28,fh-h-20)}px;width:${w}px;height:${h}px`;
+    box.textContent=t.label;
+    feed.appendChild(box);
+  }
+}
+function updateCamHUD(){
+  const j=JUNCTIONS[activeJunction];
+  document.getElementById('cam-hud-tl').innerHTML=`${j.cam}<br><span id="cam-fps">FPS: ${ri(28,32)} · OpenCV+YOLOv8s</span>`;
+  document.getElementById('cam-hud-br').textContent=`1920×1080 · ${j.area}`;
+  document.getElementById('cam-junction-label').textContent=`📷 ${j.name} — Live Feed`;
+  document.getElementById('density-junction-label').textContent=j.name;
+  const lanesGrid=document.getElementById('cam-lanes-grid');
+  lanesGrid.style.gridTemplateColumns=`repeat(${j.lanes.length},1fr)`;
+  lanesGrid.innerHTML=j.lanes.map(l=>`<div class="cam-lane-col"><div class="cam-lane-label">${l}</div></div>`).join('');
+}
+
+/* ── LIVE PANEL ── */
+let prevV={cars:0,bikes:0,buses:0,trucks:0};
+function updateLivePanel(){
+  const v=getVehicles(activeJunction);
+  const j=JUNCTIONS[activeJunction];
+  document.getElementById('cnt-cars').textContent=v.cars;
+  document.getElementById('cnt-bikes').textContent=v.bikes;
+  document.getElementById('cnt-buses').textContent=v.buses;
+  document.getElementById('cnt-trucks').textContent=v.trucks;
+  const fmt=(a,b,id)=>{
+    const d=a-b, el=document.getElementById(id);
+    el.textContent=d===0?'No change from last min':(d>0?`↑ ${d} more than last min`:`↓ ${Math.abs(d)} fewer than last min`);
+    el.className='stat-delta '+(d>0?'delta-up':'delta-dn');
+  };
+  fmt(v.cars,prevV.cars,'delta-cars');
+  fmt(v.bikes,prevV.bikes,'delta-bikes');
+  fmt(v.buses,prevV.buses,'delta-buses');
+  fmt(v.trucks,prevV.trucks,'delta-trucks');
+  prevV={...v};
+
+  // Signals
+  const total=v.cars+v.bikes+v.buses+v.trucks;
+  const dirs=['North→South','East→West','South→North'];
+  const sp=document.getElementById('signal-panel');
+  sp.innerHTML='';
+  sigState.slice(0,3).forEach((sig,i)=>{
+    const vcount=Math.round(total*(i===0?0.4:i===1?0.35:0.25));
+    sig.vehicles=vcount;
+    const gt=sigGreenTime(vcount);
+    const col=sig.color;
+    const c=col==='green'?'var(--green)':col==='amber'?'var(--amber)':'var(--red)';
+    sp.innerHTML+=`<div class="signal-card">
+      <div class="signal-lights">
+        <div class="sig-light" style="background:${col==='red'?'#ff3d3d':'rgba(255,61,61,0.12)'}"></div>
+        <div class="sig-light" style="background:${col==='amber'?'#ffb300':'rgba(255,179,0,0.12)'}"></div>
+        <div class="sig-light" style="background:${col==='green'?'#00e676':'rgba(0,230,118,0.12)'}"></div>
+      </div>
+      <div class="signal-info">
+        <div class="signal-name">${j.lanes[i]||dirs[i]}</div>
+        <div class="signal-detail">${vcount} vehicles · ${gt}s cycle · <span style="color:${c}">${col.toUpperCase()}</span></div>
+      </div>
+      <div class="sig-timer" style="color:${c}">${String(sig.timer).padStart(2,'0')}s</div>
+    </div>`;
+  });
+
+  // Lane density
+  const ld=document.getElementById('lane-density-grid');
+  ld.style.gridTemplateColumns=`repeat(${j.lanes.length},1fr)`;
+  ld.innerHTML=j.lanes.map((lane,i)=>{
+    const cap=j.lanes.length===4?30:35;
+    const cnt=Math.round((v.cars+v.bikes+v.buses+v.trucks)/j.lanes.length*(0.7+Math.random()*0.6));
+    const pct=Math.min(100,Math.round(cnt/cap*100));
+    const lvl=pct<40?'low':pct<75?'med':'high';
+    return `<div>
+      <div class="lane-row-flex"><span style="font-size:12px;color:var(--muted)">${lane}</span><span class="density-badge db-${lvl}">${lvl==='low'?'Low':lvl==='med'?'Medium':'High'}</span></div>
+      <div class="lane-row-flex"><span style="font-size:11px;color:var(--muted)">Vehicles</span><span style="font-family:var(--mono);font-size:12px">${Math.min(cnt,cap)} / ${cap}</span></div>
+      <div class="lane-bar"><div class="lane-fill fill-${lvl}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  updateBboxes();
+  updateCamHUD();
+  updateSidebarJunctions();
+  tickSignals();
+}
+
+/* ── SIGNAL CYCLING ── */
+function tickSignals(){
+  sigState.forEach((sig,i)=>{
+    sig.timer=Math.max(0,sig.timer-1);
+    if(sig.timer===0){
+      if(sig.color==='green'){sig.color='amber';sig.timer=5;pushSigLog(JUNCTIONS[i].name,'→ Amber','5s',sig.vehicles);}
+      else if(sig.color==='amber'){sig.color='red';sig.timer=sigGreenTime(sig.vehicles);pushSigLog(JUNCTIONS[i].name,'→ Red',sig.timer+'s',sig.vehicles);}
+      else{sig.color='green';sig.timer=sigGreenTime(sig.vehicles);pushSigLog(JUNCTIONS[i].name,'→ Green',sig.timer+'s',sig.vehicles);}
+    }
+  });
+  renderSigControl();
+}
+function pushSigLog(jn,ev,dur,veh){
+  const t=new Date().toLocaleTimeString('en-IN',{hour12:false});
+  sigLog.unshift({t,jn,ev,dur,veh,by:'Auto (Smart Mode)'});
+  if(sigLog.length>25)sigLog.pop();
+  const tbody=document.getElementById('sig-log-body');
+  if(tbody) tbody.innerHTML=sigLog.map(r=>`<tr>
+    <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.t}</td>
+    <td>${r.jn}</td><td>${r.ev}</td>
+    <td style="font-family:var(--mono)">${r.dur}</td>
+    <td style="font-family:var(--mono)">${r.veh}</td>
+    <td style="color:var(--muted);font-size:11px">${r.by}</td></tr>`).join('');
+}
+function renderSigControl(){
+  const grid=document.getElementById('signal-control-grid');
+  if(!grid)return;
+  grid.innerHTML=JUNCTIONS.map((j,i)=>{
+    const sig=sigState[i];
+    const col=sig.color;
+    const c=col==='green'?'var(--green)':col==='amber'?'var(--amber)':'var(--red)';
+    const gt=sigGreenTime(sig.vehicles);
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;">
+      <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${j.name}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${j.area}</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <div style="width:16px;height:16px;border-radius:50%;background:${col==='red'?'#ff3d3d':'rgba(255,61,61,0.15)'}"></div>
+        <div style="width:16px;height:16px;border-radius:50%;background:${col==='amber'?'#ffb300':'rgba(255,179,0,0.15)'}"></div>
+        <div style="width:16px;height:16px;border-radius:50%;background:${col==='green'?'#00e676':'rgba(0,230,118,0.15)'}"></div>
+        <span style="font-family:var(--mono);font-size:14px;color:${c};margin-left:4px">${String(sig.timer).padStart(2,'0')}s</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted)">Vehicles: <b style="color:var(--text)">${sig.vehicles}</b> · Green: <b style="color:var(--green)">${gt}s</b></div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button onclick="forceSig(${i},'green')" style="flex:1;padding:5px;background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.2);color:var(--green);border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--sans)">Force Green</button>
+        <button onclick="forceSig(${i},'red')" style="flex:1;padding:5px;background:rgba(255,61,61,0.08);border:1px solid rgba(255,61,61,0.18);color:var(--red);border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--sans)">Force Red</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function forceSig(i,col){
+  sigState[i].color=col;
+  sigState[i].timer=col==='green'?sigGreenTime(sigState[i].vehicles):30;
+  pushSigLog(JUNCTIONS[i].name,'Manual Override → '+col,sigState[i].timer+'s',sigState[i].vehicles);
+  renderSigControl();
+}
+
+/* ── DENSITY CHARTS ── */
+function initDensityCharts(){
+  const totals=JUNCTIONS.map((_,i)=>{
+    const v=getVehicles(i);
+    return v.cars+v.bikes+v.buses+v.trucks;
+  });
+  const grandTotal=totals.reduce((a,b)=>a+b,0);
+  document.getElementById('d-total').textContent=grandTotal;
+  document.getElementById('d-red').textContent=JUNCTIONS.filter(j=>j.status==='high').length;
+  document.getElementById('d-green').textContent='30s';
+  document.getElementById('d-idx').textContent=(getHourMultiplier(1)*100).toFixed(0)+'%';
+
+  new Chart(document.getElementById('distChart'),{
+    type:'doughnut',
+    data:{labels:['Cars','Bikes/Autos','BMTC Buses','Trucks/HTV'],
+      datasets:[{data:[48,28,14,10],backgroundColor:['#00d4ff','#ffb300','#b388ff','#ff3d3d'],borderColor:'#0f1520',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+  });
+  new Chart(document.getElementById('junctionChart'),{
+    type:'bar',
+    data:{labels:JUNCTIONS.map(j=>j.name.split(' ')[0]+'...'),
+      datasets:[{label:'Vehicles',data:totals,backgroundColor:totals.map(t=>t>200?'rgba(255,61,61,0.6)':t>140?'rgba(255,179,0,0.6)':'rgba(0,230,118,0.6)'),borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5c6680'}},x:{grid:{display:false},ticks:{color:'#5c6680',maxRotation:30}}},
+      plugins:{legend:{display:false}}}
+  });
+}
+
+/* ── REPORTS ── */
+function initReports(){
+  // Hourly data tuned to Bengaluru real patterns
+  const hours=['06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21'];
+  // Silk Board PM peak = ~428, AM = ~312 per commuter/DH data; scaled down for 15-min window
+  const carD=[45,88,195,175,102,85,98,90,85,100,145,195,210,175,130,85];
+  const bikeD=[28,55,125,110,65,55,62,58,55,65,95,128,138,112,82,52];
+  const busD=[18,32,68,62,35,30,38,35,32,38,55,72,78,65,48,30];
+  const trkD=[8,12,22,18,10,9,12,10,9,11,16,20,22,18,14,8];
+  new Chart(document.getElementById('dailyChart'),{
+    type:'bar',
+    data:{labels:hours.map(h=>h+':00'),datasets:[
+      {label:'Cars',data:carD,backgroundColor:'rgba(0,212,255,0.6)',borderColor:'#00d4ff',borderWidth:1,borderRadius:3},
+      {label:'Bikes/Autos',data:bikeD,backgroundColor:'rgba(255,179,0,0.6)',borderColor:'#ffb300',borderWidth:1,borderRadius:3},
+      {label:'BMTC',data:busD,backgroundColor:'rgba(179,136,255,0.6)',borderColor:'#b388ff',borderWidth:1,borderRadius:3},
+      {label:'Trucks',data:trkD,backgroundColor:'rgba(255,61,61,0.5)',borderColor:'#ff3d3d',borderWidth:1,borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#5c6680'}},y:{stacked:true,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5c6680'}}},
+      plugins:{legend:{labels:{color:'#5c6680',boxWidth:10,boxHeight:10,borderRadius:2}}}}
+  });
+  const tbody=document.getElementById('daily-log');
+  tbody.innerHTML=hours.map((h,i)=>{
+    const tot=carD[i]+bikeD[i]+busD[i]+trkD[i];
+    const lvl=tot>350?'<span class="density-badge db-high">High</span>':tot>200?'<span class="density-badge db-med">Medium</span>':'<span class="density-badge db-low">Low</span>';
+    return `<tr><td style="font-family:var(--mono)">${h}:00</td><td>${carD[i]}</td><td>${bikeD[i]}</td><td>${busD[i]}</td><td>${trkD[i]}</td><td style="font-family:var(--mono);font-weight:600">${tot}</td><td>${lvl}</td></tr>`;
+  }).join('');
+}
+function initHourlyChart(){
+  const labels=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+':00');
+  // Bengaluru 24h: low 1-5am, surge 7-9am, medium day, huge 6-9pm
+  const data=[22,14,10,8,12,35,110,260,312,220,165,175,210,190,172,185,230,310,355,300,215,155,98,48];
+  new Chart(document.getElementById('hourlyChart'),{
+    type:'line',
+    data:{labels,datasets:[{label:'Total Vehicles / Junction',data,fill:true,borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.07)',tension:0.4,pointRadius:2,pointBackgroundColor:'#00d4ff'}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5c6680',maxRotation:45}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5c6680'}}},
+      plugins:{legend:{labels:{color:'#5c6680'}}}}
+  });
+}
+function initWeeklyChart(){
+  // Monday worst (return from weekend), Friday 2nd worst (office + pre-weekend)
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const data=[4250,3820,3650,3780,4120,2340,1480];
+  new Chart(document.getElementById('weeklyChart'),{
+    type:'bar',
+    data:{labels:days,datasets:[{label:'Total Vehicles All Junctions',data,backgroundColor:data.map(d=>d>4000?'rgba(255,61,61,0.55)':d>3500?'rgba(255,179,0,0.55)':'rgba(0,230,118,0.55)'),borderColor:data.map(d=>d>4000?'#ff3d3d':d>3500?'#ffb300':'#00e676'),borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{display:false},ticks:{color:'#5c6680'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5c6680'}}},
+      plugins:{legend:{labels:{color:'#5c6680'}}}}
+  });
+}
+
+/* ── PEAK HOURS ── */
+function initPeak(){
+  // Weighted 24h profile per junction — based on real patterns
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const wrap=document.getElementById('heatmap-wrap');
+  wrap.innerHTML='';
+  // header row
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:grid;grid-template-columns:90px repeat(24,1fr);gap:2px;margin-bottom:3px';
+  hdr.innerHTML='<div></div>'+Array.from({length:24},(_,i)=>`<div style="font-size:8.5px;color:var(--muted);text-align:center">${i}</div>`).join('');
+  wrap.appendChild(hdr);
+
+  JUNCTIONS.forEach(j=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:90px repeat(24,1fr);gap:2px;margin-bottom:2px';
+    let cells=`<div style="font-size:10px;color:var(--muted);display:flex;align-items:center;padding-right:6px;text-align:right;justify-content:flex-end">${j.name.split(' ')[0]}</div>`;
+    j.pattern.forEach((v,h)=>{
+      const jit=0.82+Math.random()*0.36;
+      const iv=Math.min(1,v*jit);
+      let bg;
+      if(iv<0.12) bg=`rgba(0,230,118,0.12)`;
+      else if(iv<0.35) bg=`rgba(0,230,118,${0.25+iv})`;
+      else if(iv<0.65) bg=`rgba(255,179,0,${0.35+iv*0.4})`;
+      else if(iv<0.85) bg=`rgba(255,80,0,${0.4+iv*0.4})`;
+      else bg=`rgba(255,30,30,${0.5+iv*0.5})`;
+      cells+=`<div style="height:20px;border-radius:2px;background:${bg};cursor:pointer" title="${j.name} — ${String(h).padStart(2,'0')}:00 → ~${Math.round(iv*(j.baseLoad.cars+j.baseLoad.bikes+j.baseLoad.buses+j.baseLoad.trucks))} vehicles"></div>`;
+    });
+    row.innerHTML=cells;
+    wrap.appendChild(row);
+  });
+
+  // Peak table
+  const tbody=document.getElementById('peak-table-body');
+  tbody.innerHTML=JUNCTIONS.map(j=>{
+    const lvl=j.status;
+    const badge=lvl==='high'?'<span class="density-badge db-high">High</span>':lvl==='medium'?'<span class="density-badge db-med">Medium</span>':'<span class="density-badge db-low">Low</span>';
+    return `<tr>
+      <td><b>${j.name}</b><br><span style="font-size:10.5px;color:var(--muted)">${j.area}</span></td>
+      <td style="font-family:var(--mono);font-size:12px">${j.amPeak}</td>
+      <td style="font-family:var(--mono);font-size:12px">${j.pmPeak}</td>
+      <td style="font-family:var(--mono)">${j.avgDaily.toLocaleString()}</td>
+      <td>${j.worstDay}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── CAMERAS PAGE ── */
+function initCameras(){
+  const grid=document.getElementById('camera-grid');
+  grid.innerHTML=JUNCTIONS.map((j,i)=>`
+    <div class="card" style="cursor:pointer" onclick="document.querySelectorAll('.nav-item')[0].click();selectJunctionById('${j.id}')">
+      <div style="aspect-ratio:16/9;background:#050810;border-radius:6px;position:relative;overflow:hidden;border:1px solid var(--border2);margin-bottom:10px;">
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,212,255,0.01) 3px,rgba(0,212,255,0.01) 4px)"></div>
+        <div style="position:absolute;top:6px;left:8px;font-family:var(--mono);font-size:8.5px;color:rgba(0,212,255,0.6)">CAM_0${i+1} · ${j.name}</div>
+        <div style="position:absolute;top:6px;right:8px;display:flex;align-items:center;gap:4px"><div style="width:5px;height:5px;background:var(--red);border-radius:50%;animation:blink 1s step-end infinite"></div><span style="font-family:var(--mono);font-size:8px;color:rgba(255,61,61,0.8)">REC</span></div>
+        <div style="position:absolute;bottom:6px;right:8px;font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.25)">1920×1080</div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;opacity:0.12">📹</div>
+      </div>
+      <div style="font-size:13px;font-weight:600">${j.name}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">${j.area} · ${j.lanes.length} lanes</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.5">${j.congestionNote}</div>
+    </div>`).join('');
+}
+function selectJunctionById(id){
+  const i=JUNCTIONS.findIndex(j=>j.id===id);
+  if(i>=0){
+    activeJunction=i;
+    document.querySelectorAll('.jtab').forEach((t,ti)=>t.classList.toggle('active',ti===i));
+    updateLivePanel();
+  }
+}
+
+/* ── INIT ── */
+function initDashboard(){
+  buildJunctionTabs();
+  updateLivePanel();
+  updateSidebarJunctions();
+  renderSigControl();
+  // Seed log
+  ['→ Green','→ Red','→ Amber','→ Green','→ Red','→ Green'].forEach((ev,i)=>{
+    pushSigLog(JUNCTIONS[i%6].name,ev,['30s','45s','5s','15s','30s','45s'][i],ri(10,40));
+  });
+  setInterval(()=>{updateLivePanel();},2500);
+  setInterval(()=>{renderSigControl();},5000);
+}
+</script>
+</body>
+</html>
